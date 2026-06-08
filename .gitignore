@@ -1,0 +1,6 @@
+# 任务调度平台 — .gitignore
+
+node_modules/
+dist/
+*.log
+.DS_Store

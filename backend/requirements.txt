@@ -1,0 +1,21 @@
+# 任务调度平台 — Python 依赖
+# Python 3.10+
+
+# Web 框架
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+
+# 数据库
+sqlalchemy[asyncio]>=2.0.25
+aiomysql>=0.2.0
+pymysql>=1.1.0
+
+# 配置管理
+pydantic-settings>=2.1.0
+
+# 任务队列
+celery[redis]>=5.3.6
+redis>=5.0.1
+
+# WebSocket
+websockets>=12.0
