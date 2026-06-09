@@ -121,9 +121,8 @@ async def cancel_task_endpoint(
     if task.celery_id:
         cancel_celery_task.delay(task_id, task.celery_id)
 
-    # 如果任务还在 pending，直接标记为 cancelled
-    if task.status == "pending":
-        await task_service.update_task_status(db, task_id, "cancelled")
+    # 更新数据库状态为 cancelled（无论 pending 还是 running 都立即标记）
+    await task_service.update_task_status(db, task_id, "cancelled")
 
     return {"message": "任务取消请求已提交"}
 

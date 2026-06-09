@@ -214,16 +214,28 @@ server {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # WebSocket 代理
+    # WebSocket 代理（任务实时日志）
     location /ws/ {
         proxy_pass http://127.0.0.1:8000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
     }
 }
+
+# 如需兼容非 WebSocket 请求，可在 http 块添加以下映射：
+# map $http_upgrade $connection_upgrade {
+#     default upgrade;
+#     '' close;
+# }
+# 并将 proxy_set_header Connection 改为 $connection_upgrade
 ```
 
 ## 常见问题

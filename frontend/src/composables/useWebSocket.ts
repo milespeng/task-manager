@@ -1,6 +1,11 @@
 /**
  * WebSocket 组合式函数
  * 功能描述：管理与后端 WebSocket 的连接、自动重连、消息接收
+ *
+ * 重连策略：
+ *   - 主动断开（disconnect / 任务结束）→ 不重连
+ *   - 被动断开（网络异常 / 服务端关闭）→ 自动重连，最多 5 次，间隔 2s
+ *   - 每次成功连接后重置重连计数
  */
 import { ref, onUnmounted } from 'vue'
 
@@ -18,8 +23,9 @@ export function useWebSocket(taskId: string) {
   const error = ref<string | null>(null)
 
   let ws: WebSocket | null = null
-  let reconnectTimer: number | null = null
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let reconnectAttempts = 0
+  let intentionalClose = false
   const maxReconnectAttempts = 5
   const reconnectDelay = 2000
 
@@ -41,7 +47,9 @@ export function useWebSocket(taskId: string) {
       ws.onopen = () => {
         connected.value = true
         error.value = null
+        // 成功连接：重置计数器，清除「主动断开」标记
         reconnectAttempts = 0
+        intentionalClose = false
       }
 
       ws.onmessage = (event) => {
@@ -49,7 +57,7 @@ export function useWebSocket(taskId: string) {
           const data = JSON.parse(event.data) as IWSMessage
           message.value = data
 
-          // 收到任务结束消息后关闭连接
+          // 收到任务结束消息后主动断开（不会再重连）
           if (
             data.type === 'status_change' &&
             ['success', 'failed', 'cancelled'].includes(data.status)
@@ -64,27 +72,34 @@ export function useWebSocket(taskId: string) {
       ws.onclose = () => {
         connected.value = false
         ws = null
-        // 自动重连
-        attemptReconnect()
+        if (!intentionalClose) {
+          attemptReconnect()
+        }
       }
 
       ws.onerror = () => {
         error.value = 'WebSocket 连接异常'
+        // onerror 之后必定触发 onclose，由 onclose 负责重连
       }
     } catch {
       error.value = 'WebSocket 连接失败'
-      attemptReconnect()
+      if (!intentionalClose) {
+        attemptReconnect()
+      }
     }
   }
 
-  /** 断开连接 */
+  /** 主动断开连接（不会触发自动重连） */
   function disconnect() {
+    intentionalClose = true
     if (reconnectTimer) {
       clearTimeout(reconnectTimer)
       reconnectTimer = null
     }
-    reconnectAttempts = maxReconnectAttempts // 阻止自动重连
     if (ws) {
+      // 移除 onclose/onerror 防止 close 回调中访问已废弃的引用
+      ws.onclose = null
+      ws.onerror = null
       ws.close()
       ws = null
     }
@@ -94,18 +109,17 @@ export function useWebSocket(taskId: string) {
   /** 尝试重连 */
   function attemptReconnect() {
     if (reconnectAttempts >= maxReconnectAttempts) return
-    reconnectTimer = window.setTimeout(() => {
+    reconnectTimer = setTimeout(() => {
       reconnectAttempts++
       connect()
     }, reconnectDelay)
   }
 
-  /** 清理 */
+  /** 组件卸载时清理 */
   function cleanup() {
     disconnect()
   }
 
-  // 组件卸载时自动清理
   onUnmounted(cleanup)
 
   return {

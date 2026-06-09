@@ -9,7 +9,7 @@
 | 后端框架   | FastAPI                     | Python 异步 Web 框架      |
 | 异步任务   | Celery                      | 分布式任务队列            |
 | 消息代理   | Redis                       | Celery Broker + 结果存储  |
-| 数据库     | SQLite（MVP）/ PostgreSQL   | 可通过 SQLAlchemy 切换    |
+| 数据库     | MySQL 8.0                   | 异步驱动 aiomysql         |
 | 前端框架   | Vue 3 + Composition API     | 响应式 UI 框架            |
 | 构建工具   | Vite                        | 前端构建与热更新          |
 | UI 组件库  | Element Plus                | 企业级 Vue 3 组件库       |
@@ -25,19 +25,23 @@
 ## 快速开始
 
 ```bash
-# 1. 启动 Redis
-docker-compose up -d redis
+# 1. 启动依赖服务（Redis + MySQL）
+docker compose up -d
 
-# 2. 启动后端
+# 2. 复制环境变量模板并修改
+cp backend/.env.example backend/.env
+# 编辑 backend/.env，填入实际 MySQL 用户名、密码和数据库名
+
+# 3. 启动后端
 cd backend
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 
-# 3. 启动 Celery Worker（新终端）
+# 4. 启动 Celery Worker（新终端）
 cd backend
 celery -A app.celery_app.celery_app worker --loglevel=info
 
-# 4. 启动前端（新终端）
+# 5. 启动前端（新终端）
 cd frontend
 npm install
 npm run dev

@@ -19,3 +19,7 @@ venv/
 .vscode/
 *.swp
 *.swo
+
+# 临时脚本
+*_test.py
+check_*.py

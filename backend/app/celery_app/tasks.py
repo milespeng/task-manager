@@ -79,16 +79,26 @@ def execute_shell_command(self, task_id: str, command: str):
         dict: 包含输出和状态的字典。
     """
     from sqlalchemy import select, update
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-    from app.database import engine
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
     from app.models.task import Task
-
-    # 创建数据库会话
-    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     import asyncio
 
     async def run():
+        # 每个任务内部创建引擎，绑定到当前 asyncio.run() 创建的 event loop
+        from app.config import settings
+
+        engine = create_async_engine(
+            settings.database_url, echo=False, pool_size=2, max_overflow=5
+        )
+        session_factory = async_sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
+
         output_lines: list[str] = []
         async with session_factory() as db:
             try:
@@ -176,7 +186,9 @@ def execute_shell_command(self, task_id: str, command: str):
 
                 raise
 
-    return asyncio.get_event_loop().run_until_complete(run())
+        await engine.dispose()
+
+    return asyncio.run(run())
 
 
 @celery_app.task(bind=True, name="execute_python_script")

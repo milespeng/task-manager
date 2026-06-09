@@ -31,10 +31,8 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         """生成异步数据库连接 URL"""
-        return (
-            f"mysql+aiomysql://{self.mysql_user}:{self.mysql_password}"
-            f"@{self.mysql_host}:{self.mysql_port}/{self.mysql_database}"
-        )
+        # 使用 .env 中实际的 mysql_password，空密码时格式为 user:@host:port/db
+        return f"mysql+aiomysql://{self.mysql_user}:{self.mysql_password}@{self.mysql_host}:{self.mysql_port}/{self.mysql_database}"
 
     @property
     def celery_broker_url(self) -> str:

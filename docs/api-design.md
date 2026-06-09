@@ -8,28 +8,31 @@
 
 ## 通用响应结构
 
+所有 API 接口直接返回 JSON 数据体（无额外包裹层）：
+
+### 成功响应
+
+直接返回对象或数组，HTTP 状态码表示操作结果：
+
+| 状态码 | 说明                          |
+|--------|-------------------------------|
+| 200    | 请求成功                       |
+| 201    | 创建成功                       |
+| 400    | 请求参数错误                   |
+| 404    | 任务不存在                     |
+| 409    | 任务状态冲突（如重复取消）      |
+| 500    | 服务器内部错误                 |
+
+### 错误响应
+
 ```json
 {
-  "code": 200,
-  "message": "操作成功",
-  "data": {}
+  "detail": "错误描述信息"
 }
 ```
 
-### 分页响应
-
-```json
-{
-  "code": 200,
-  "message": "操作成功",
-  "data": {
-    "items": [],
-    "total": 100,
-    "page": 1,
-    "page_size": 20
-  }
-}
-```
+- 4xx 错误：`detail` 字段包含人类可读的错误信息
+- 5xx 错误：生产环境可能隐藏具体错误细节
 
 ## RESTful 接口
 
@@ -51,23 +54,20 @@ GET /api/tasks
 
 ```json
 {
-  "code": 200,
-  "data": {
-    "items": [
-      {
-        "id": "a1b2c3d4-...",
-        "name": "数据备份任务",
-        "task_type": "shell_command",
-        "status": "success",
-        "created_at": "2026-06-08T10:00:00",
-        "started_at": "2026-06-08T10:00:01",
-        "finished_at": "2026-06-08T10:00:15"
-      }
-    ],
-    "total": 1,
-    "page": 1,
-    "page_size": 20
-  }
+  "items": [
+    {
+      "id": "a1b2c3d4-...",
+      "name": "数据备份任务",
+      "task_type": "shell_command",
+      "status": "success",
+      "created_at": "2026-06-08T10:00:00",
+      "started_at": "2026-06-08T10:00:01",
+      "finished_at": "2026-06-08T10:00:15"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "page_size": 20
 }
 ```
 
@@ -97,19 +97,21 @@ POST /api/tasks
 | task_type  | string | 是   | 任务类型：shell_command / python_script  |
 | payload    | string | 是   | 任务内容（Shell 命令 或 Python 代码）     |
 
-**成功响应：**
+**成功响应（201 Created）：**
 
 ```json
 {
-  "code": 201,
-  "message": "任务已创建并开始执行",
-  "data": {
-    "id": "a1b2c3d4-...",
-    "name": "数据备份任务",
-    "task_type": "shell_command",
-    "status": "pending",
-    "created_at": "2026-06-08T10:00:00"
-  }
+  "id": "a1b2c3d4-...",
+  "name": "数据备份任务",
+  "description": null,
+  "task_type": "shell_command",
+  "payload": "mysqldump -u root mydb > /backup/mydb.sql",
+  "status": "pending",
+  "output": "",
+  "created_at": "2026-06-08T10:00:00",
+  "updated_at": "2026-06-08T10:00:00",
+  "started_at": null,
+  "finished_at": null
 }
 ```
 
@@ -125,20 +127,17 @@ GET /api/tasks/{id}
 
 ```json
 {
-  "code": 200,
-  "data": {
-    "id": "a1b2c3d4-...",
-    "name": "数据备份任务",
-    "description": "备份 MySQL 数据库到 /backup 目录",
-    "task_type": "shell_command",
-    "payload": "mysqldump -u root mydb > /backup/mydb.sql",
-    "status": "success",
-    "output": "-- 开始备份...\n-- 备份完成，文件大小 128MB\n",
-    "created_at": "2026-06-08T10:00:00",
-    "updated_at": "2026-06-08T10:00:15",
-    "started_at": "2026-06-08T10:00:01",
-    "finished_at": "2026-06-08T10:00:15"
-  }
+  "id": "a1b2c3d4-...",
+  "name": "数据备份任务",
+  "description": "备份 MySQL 数据库到 /backup 目录",
+  "task_type": "shell_command",
+  "payload": "mysqldump -u root mydb > /backup/mydb.sql",
+  "status": "success",
+  "output": "-- 开始备份...\n-- 备份完成，文件大小 128MB\n",
+  "created_at": "2026-06-08T10:00:00",
+  "updated_at": "2026-06-08T10:00:15",
+  "started_at": "2026-06-08T10:00:01",
+  "finished_at": "2026-06-08T10:00:15"
 }
 ```
 
@@ -161,8 +160,7 @@ POST /api/tasks/{id}/cancel
 
 ```json
 {
-  "code": 200,
-  "message": "任务已取消"
+  "message": "任务取消请求已提交"
 }
 ```
 
@@ -176,7 +174,6 @@ DELETE /api/tasks/{id}
 
 ```json
 {
-  "code": 200,
   "message": "任务已删除"
 }
 ```
@@ -243,14 +240,3 @@ ws://localhost:8000/ws/tasks/{id}
   前端仅请求 GET /api/tasks/{id} ──► 获取完整历史输出
   无需建立 WebSocket 连接
 ```
-
-## 错误码
-
-| 状态码 | 说明                          |
-|--------|-------------------------------|
-| 200    | 请求成功                       |
-| 201    | 创建成功                       |
-| 400    | 请求参数错误                   |
-| 404    | 任务不存在                     |
-| 409    | 任务状态冲突（如重复取消）      |
-| 500    | 服务器内部错误                 |
