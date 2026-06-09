@@ -158,33 +158,32 @@ class Task(Base):
 
 ## 初始化策略
 
-### 开发阶段
+### 开发阶段（首次部署）
 
-使用 SQLAlchemy `create_all` 自动建表。应用首次启动时自动创建表结构（需先手动创建数据库）：
-
-```python
-# app/main.py — lifespan 中执行
-async with engine.begin() as conn:
-    await conn.run_sync(Base.metadata.create_all)
-```
-
-### 生产环境
-
-推荐使用 Alembic 管理数据库迁移：
+使用 Alembic 迁移管理数据库表结构。首次部署执行：
 
 ```bash
-# 安装 Alembic
-pip install alembic
+cd backend
+PYTHONPATH=. alembic upgrade head
+```
 
-# 初始化（异步模式）
-alembic init -t async alembic
+此命令会根据初始迁移创建所有表。
 
-# 配置 alembic.ini 中的数据库连接
-# sqlalchemy.url = mysql+aiomysql://<用户名>:<密码>@<主机>:<端口>/<数据库名>
+### 已有数据库
 
-# 生成迁移
-alembic revision --autogenerate -m "初始化任务表"
+如果数据库表已通过 `create_all` 创建，执行以下命令标记基线：
 
-# 执行迁移
-alembic upgrade head
+```bash
+cd backend
+PYTHONPATH=. alembic stamp head
+```
+
+### 开发迭代
+
+修改模型后生成新迁移：
+
+```bash
+cd backend
+PYTHONPATH=. alembic revision --autogenerate -m "变更说明"
+PYTHONPATH=. alembic upgrade head
 ```
