@@ -64,6 +64,19 @@
       </el-descriptions>
     </el-card>
 
+    <!-- 执行命令/脚本内容 -->
+    <el-card v-if="task" class="payload-card" shadow="never">
+      <template #header>
+        <div class="payload-card-header">
+          <span class="payload-label">
+            {{ task.task_type === 'shell_command' ? 'Shell 命令' : 'Python 脚本' }}
+          </span>
+          <el-button size="small" text @click="copyPayload">复制内容</el-button>
+        </div>
+      </template>
+      <pre class="payload-content"><code>{{ task.payload }}</code></pre>
+    </el-card>
+
     <!-- 日志查看器 -->
     <el-card v-if="task" class="log-card" shadow="never">
       <template #header>
@@ -189,6 +202,17 @@ function formatTime(iso: string): string {
   })
 }
 
+/** 复制命令内容到剪贴板 */
+async function copyPayload() {
+  if (!task.value?.payload) return
+  try {
+    await navigator.clipboard.writeText(task.value.payload)
+    ElMessage.success('已复制到剪贴板')
+  } catch {
+    ElMessage.warning('复制失败，请手动选择复制')
+  }
+}
+
 // ===== 生命周期 =====
 onMounted(async () => {
   loading.value = true
@@ -248,5 +272,36 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   font-weight: 600;
+}
+
+/* 执行命令展示 */
+.payload-card :deep(.el-card__header) {
+  padding: 10px 20px;
+}
+
+.payload-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.payload-label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.payload-content {
+  margin: 0;
+  padding: 12px 16px;
+  background: #f6f8fa;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #24292e;
+  max-height: 300px;
+  overflow-y: auto;
 }
 </style>

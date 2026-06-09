@@ -118,6 +118,7 @@ def execute_shell_command(self, task_id: str, command: str):
 
                 publish_status_change(task_id, "running")
                 publish_output(task_id, f"$ {command}\n", "running")
+                output_lines.append(f"$ {command}\n")
 
                 # 使用 subprocess 执行命令
                 process = subprocess.Popen(
